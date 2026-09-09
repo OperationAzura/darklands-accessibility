@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+config_home="${DARKLANDS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/darklands-accessibility}"
+config_file="${DARKLANDS_CONFIG_FILE:-$config_home/darklands.env}"
+
+if [[ -f "$config_file" ]]; then
+    # This is a user-owned shell environment file.
+    # shellcheck source=/dev/null
+    source "$config_file"
+fi
+
+dosbox="${DOSBOX_STAGING_BIN:-$(command -v dosbox-staging || true)}"
+darktext="${DARKTEXT_BIN:-$(command -v darktext || true)}"
+game_dir="${DARKLANDS_GAME_DIR:-$HOME/dosGames/darklands}"
+game_exe="${DARKLANDS_GAME_EXE:-$game_dir/darkland.exe}"
+data_dir="${DARKTEXT_DATA_DIR:-$HOME/.local/share/darklands-accessibility/data}"
+log_dir="${DARKLANDS_LOG_DIR:-$data_dir/logs}"
+api_bind="${DOSBOX_WEBSERVER_BIND:-127.0.0.1}"
+api_port="${DOSBOX_WEBSERVER_PORT:-8086}"
+api_url="${DOSBOX_API_URL:-http://$api_bind:$api_port}"
+
+if [[ "$api_bind" != "127.0.0.1" && "$api_bind" != "::1" ]]; then
+    echo "Refusing to expose the privileged DOSBox API on $api_bind." >&2
+    echo "Use a loopback address such as 127.0.0.1." >&2
+    exit 2
+fi
+
+if [[ -z "$dosbox" || ! -x "$dosbox" ]]; then
+    echo "dosbox-staging is not installed or executable." >&2
+    exit 1
+fi
+
+if [[ ! -f "$game_exe" ]]; then
+    echo "Darklands was not found at: $game_exe" >&2
+    echo "Edit $config_file and set DARKLANDS_GAME_DIR." >&2
+    exit 1
+fi
+
+mkdir -p "$log_dir"
+
+export DARKLANDS_GAME_DIR="$game_dir"
+export DARKLANDS_EXE="$game_exe"
+export DARKTEXT_DATA_DIR="$data_dir"
+export DOSBOX_API_URL="$api_url"
+
+dosbox_pid=""
+darktext_pid=""
+
+# Invoked indirectly by the EXIT/INT/TERM trap below.
+# shellcheck disable=SC2329
+cleanup()
+{
+    if [[ -n "$darktext_pid" ]]; then
+        kill "$darktext_pid" 2>/dev/null || true
+    fi
+    if [[ -n "$dosbox_pid" ]]; then
+        kill "$dosbox_pid" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT INT TERM
+
+echo "Starting Darklands with accessibility API at $api_url"
+
+"$dosbox" \
+    --set core=normal \
+    --set mouse_capture=seamless \
+    --set mouse_raw_input=off \
+    --set webserver_enabled=on \
+    --set webserver_bind_address="$api_bind" \
+    --set webserver_port="$api_port" \
+    "$@" \
+    "$game_exe" &
+dosbox_pid=$!
+
+api_ready=0
+for ((attempt = 0; attempt < 100; attempt++)); do
+    if ! kill -0 "$dosbox_pid" 2>/dev/null; then
+        break
+    fi
+    if curl --silent --fail --max-time 1 "$api_url/" >/dev/null 2>&1; then
+        api_ready=1
+        break
+    fi
+    sleep 0.1
+done
+
+if ((api_ready)); then
+    echo "DOSBox accessibility API ready."
+    if [[ -n "$darktext" && -x "$darktext" ]]; then
+        "$darktext" daemon >>"$log_dir/darktext.log" 2>&1 &
+        darktext_pid=$!
+    else
+        echo "WARNING: darktext was not found; continuing without speech OCR."
+    fi
+else
+    echo "WARNING: DOSBox API did not become ready; continuing without DarkText."
+fi
+
+set +e
+wait "$dosbox_pid"
+status=$?
+set -e
+dosbox_pid=""
+exit "$status"
