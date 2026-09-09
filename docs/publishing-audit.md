@@ -29,5 +29,8 @@ Audit completed 2026-09-09 before the initial public release.
 - Darklands Coords: three tests passed.
 - Both Python projects built valid wheels with MIT license metadata.
 - Launcher and install/update scripts passed `bash -n` and ShellCheck 0.11.0.
+- A clean-room installer smoke test cloned all three local repositories, created
+  the virtual environment and configuration, installed both Python commands,
+  and produced working launcher symlinks.
 - DOSBox accessibility changes passed `git diff --check`; the active installed
   binary was built after and matched the audited local build artifact.
