@@ -57,6 +57,7 @@ darklands-coords
 - [Configuration](docs/configuration.md)
 - [Security and save safety](docs/security.md)
 - [Licensing and provenance](docs/licensing.md)
+- [Initial publishing audit](docs/publishing-audit.md)
 
 ## Project scope
 
