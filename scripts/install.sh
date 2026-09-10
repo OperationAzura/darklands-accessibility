@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 build_dosbox=1
-install_system_deps=0
+install_system_deps=1
 assume_yes=0
 user_commands_override=""
 config_override=""
@@ -13,17 +13,18 @@ usage()
 Usage: ./scripts/install.sh [options]
 
 Install the Darklands accessibility stack into this checkout's ./local tree by
-default. No commands in ~/.local/bin and no system packages are changed unless
-you explicitly opt in.
+default. The installer checks for required Debian/Ubuntu system dependencies and
+offers to install anything missing. Commands in ~/.local/bin are still left
+untouched unless you explicitly opt in.
 
 Options:
   --config FILE             Use a specific shell configuration file
-  --install-system-deps     Offer/install missing Debian/Ubuntu apt packages
-  --skip-system-deps        Never install system packages (default)
+  --install-system-deps     Check/install missing Debian/Ubuntu apt packages (default)
+  --skip-system-deps        Do not check or install system packages
   --skip-dosbox-build       Do not build DOSBox Staging
   --install-user-commands   Link project-local commands into ~/.local/bin
   --no-user-commands        Do not create/update ~/.local/bin links (default)
-  -y, --yes                 Answer yes to requested dependency installation
+  -y, --yes                 Answer yes to dependency installation prompts
   -h, --help                Show this help
 
 The configuration controls the Darklands game path, repository URLs/branches,
@@ -107,7 +108,7 @@ Darklands Accessibility install plan
   Coords:        $coords_branch
   Voices:        $voice_dir
   User commands: $([[ "$install_user_commands" == "1" ]] && echo YES || echo NO)
-  System deps:   $([[ "$install_system_deps" == "1" ]] && echo REQUESTED || echo UNTOUCHED)
+  System deps:   $([[ "$install_system_deps" == "1" ]] && echo CHECK/INSTALL-MISSING || echo SKIPPED)
 
 EOF
 
@@ -149,21 +150,33 @@ if ((install_system_deps)); then
             if ((${#missing[@]})); then
                 echo "Missing system packages: ${missing[*]}"
                 do_install=$assume_yes
-                if ((assume_yes == 0)) && [[ -t 0 ]]; then
-                    read -r -p "Install them with apt? [y/N] " answer
-                    [[ "${answer:-N}" =~ ^[Yy]([Ee][Ss])?$ ]] && do_install=1
+                if ((assume_yes == 0)); then
+                    if [[ -t 0 ]]; then
+                        read -r -p "Install these missing dependencies with apt? [Y/n] " answer
+                        case "${answer:-Y}" in
+                            y|Y|yes|YES|Yes) do_install=1 ;;
+                            *) do_install=0 ;;
+                        esac
+                    else
+                        echo "Non-interactive session detected; installing missing dependencies automatically."
+                        do_install=1
+                    fi
                 fi
                 if ((do_install)); then
                     run_as_root apt-get update
                     run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
                 else
-                    echo "System packages left unchanged."
+                    echo "System package installation declined."
                 fi
+            else
+                echo "System dependencies already installed."
             fi
         else
-            echo "Automatic system dependency installation is supported only on Debian/Ubuntu."
+            echo "Automatic system dependency installation is currently supported only on Debian/Ubuntu."
         fi
     fi
+else
+    echo "System dependency check skipped by request."
 fi
 
 for command in git python3 curl; do
@@ -173,7 +186,7 @@ if ((build_dosbox)); then
     for command in meson ninja; do
         command -v "$command" >/dev/null 2>&1 || {
             echo "Required DOSBox build command not found: $command" >&2
-            echo "Install build dependencies or rerun with --install-system-deps." >&2
+            echo "Install the missing dependency or rerun without --skip-system-deps." >&2
             exit 1
         }
     done
