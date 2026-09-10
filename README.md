@@ -37,11 +37,16 @@ cd darklands-accessibility
 ./scripts/install.sh
 ```
 
-The default installation is intentionally self-contained. It creates a git-ignored
-`./local` directory inside this checkout containing component repositories, the
-Python virtual environment, built DOSBox binary, Piper, voices, runtime data,
+The default installation is self-contained. It creates a git-ignored `./local`
+directory inside this checkout containing component repositories, the Python
+virtual environment, built DOSBox binary, Piper, voices, runtime data,
 configuration, and launch commands. It does **not** create or replace commands in
-`~/.local/bin`, and it does **not** install system packages unless explicitly asked.
+`~/.local/bin` unless you explicitly ask it to.
+
+On Debian and Ubuntu, the installer checks required system packages. If anything
+is missing it lists the packages and asks whether to install them with `apt`.
+Pressing Enter accepts the install. Use `--yes` for a non-interactive install, or
+`--skip-system-deps` if you manage system packages yourself.
 
 After installation, run:
 
@@ -78,14 +83,17 @@ If you explicitly want convenient PATH commands, use:
 ./scripts/install.sh --install-user-commands
 ```
 
-If Debian/Ubuntu build dependencies are missing and you want the installer to
-manage them, use:
+For unattended Debian/Ubuntu setup, use:
 
 ```bash
-./scripts/install.sh --install-system-deps
+./scripts/install.sh --yes
 ```
 
-or add `--yes` to make that requested apt step non-interactive.
+To leave system packages completely untouched, use:
+
+```bash
+./scripts/install.sh --skip-system-deps
+```
 
 ## Documentation
 
