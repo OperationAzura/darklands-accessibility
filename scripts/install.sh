@@ -12,14 +12,19 @@ Usage: ./scripts/install.sh [--skip-system-deps] [--skip-dosbox-build] [--yes]
 
 Set up the Darklands accessibility toolkit. On Debian/Ubuntu systems the
 installer can install required system packages with apt, then clone/update the
-component repositories, build DOSBox Staging, install the Python tools in a
-virtual environment, and place commands in ~/.local/bin.
+component repositories, build DOSBox Staging, install the Python tools and
+Piper TTS, download a default voice, and place commands in ~/.local/bin.
 
 Options:
   --skip-system-deps   Do not offer to install Debian/Ubuntu apt dependencies
   --skip-dosbox-build  Install/refresh Python tools and launcher without DOSBox
   -y, --yes            Install missing system dependencies without prompting
   -h, --help           Show this help
+
+Environment overrides:
+  DARKLANDS_PIPER_PACKAGE  Piper package spec (default: piper-tts==1.4.2)
+  DARKLANDS_PIPER_VOICE    Piper voice name (default: en_US-amy-medium)
+  DARKLANDS_VOICE_DIR      Voice directory
 EOF
 }
 
@@ -55,6 +60,9 @@ venv="$install_root/venv"
 bin_dir="${DARKLANDS_BIN_DIR:-$HOME/.local/bin}"
 config_home="${DARKLANDS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/darklands-accessibility}"
 config_file="$config_home/darklands.env"
+voice_dir="${DARKTEXT_VOICE_DIR:-${DARKLANDS_VOICE_DIR:-$HOME/.local/share/piper-tts/voices}}"
+piper_package="${DARKLANDS_PIPER_PACKAGE:-piper-tts==1.4.2}"
+piper_voice="${DARKLANDS_PIPER_VOICE:-en_US-amy-medium}"
 
 dosbox_dir="$source_root/dosbox-staging-accessibility"
 darktext_dir="$source_root/darktext"
@@ -171,7 +179,7 @@ if ((build_dosbox)); then
     done
 fi
 
-mkdir -p "$source_root" "$bin_dir" "$config_home"
+mkdir -p "$source_root" "$bin_dir" "$config_home" "$voice_dir"
 
 sync_repo()
 {
@@ -227,6 +235,40 @@ fi
 "$venv/bin/python" -m pip install --upgrade pip
 "$venv/bin/python" -m pip install -e "$darktext_dir" -e "$coords_dir"
 
+if ! "$venv/bin/python" -c 'import piper' >/dev/null 2>&1; then
+    echo "Installing Piper TTS ($piper_package)..."
+    "$venv/bin/python" -m pip install "$piper_package"
+else
+    echo "Piper TTS already installed in the project environment."
+fi
+
+if ! "$venv/bin/python" -m piper --help >/dev/null 2>&1; then
+    echo "Piper installation check failed." >&2
+    exit 1
+fi
+
+voice_model="$voice_dir/$piper_voice.onnx"
+voice_config="$voice_model.json"
+if [[ ! -f "$voice_model" || ! -f "$voice_config" ]]; then
+    echo "Downloading Piper voice: $piper_voice"
+    "$venv/bin/python" -m piper.download_voices \
+        --data-dir "$voice_dir" \
+        "$piper_voice"
+else
+    echo "Piper voice already installed: $piper_voice"
+fi
+
+if [[ ! -f "$voice_model" || ! -f "$voice_config" ]]; then
+    echo "Piper voice download did not create the expected model files." >&2
+    exit 1
+fi
+
+cat > "$bin_dir/piper" <<EOF
+#!/usr/bin/env bash
+exec "$venv/bin/python" -m piper "\$@"
+EOF
+chmod +x "$bin_dir/piper"
+
 ln -sfn "$venv/bin/darktext" "$bin_dir/darktext"
 ln -sfn "$venv/bin/darklands-coords" "$bin_dir/darklands-coords"
 ln -sfn "$project_dir/bin/darklands" "$bin_dir/darklands"
@@ -240,7 +282,9 @@ fi
 
 echo
 echo "Darklands Accessibility installed."
-echo "Commands: $bin_dir/darklands, $bin_dir/darktext, $bin_dir/darklands-coords"
+echo "Piper voice: $piper_voice"
+echo "Voice directory: $voice_dir"
+echo "Commands: $bin_dir/darklands, $bin_dir/darktext, $bin_dir/darklands-coords, $bin_dir/piper"
 if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
     echo "Add $bin_dir to PATH before using the commands."
 fi
