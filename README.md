@@ -28,11 +28,8 @@ repositories and does not use Git submodules.
 
 ## Quick start
 
-Darklands itself is not included. Install your legally obtained game first.
-On Debian and Ubuntu, the installer detects and offers to install the required
-system packages automatically. It also installs Piper TTS into the project
-virtual environment and downloads the female U.S. English `en_US-amy-medium`
-voice automatically.
+Darklands itself is not included or modified. Install your legally obtained game
+first, then clone this repository and run the installer:
 
 ```bash
 git clone https://github.com/OperationAzura/darklands-accessibility.git
@@ -40,31 +37,55 @@ cd darklands-accessibility
 ./scripts/install.sh
 ```
 
-For unattended Debian/Ubuntu setup, use:
+The default installation is intentionally self-contained. It creates a git-ignored
+`./local` directory inside this checkout containing component repositories, the
+Python virtual environment, built DOSBox binary, Piper, voices, runtime data,
+configuration, and launch commands. It does **not** create or replace commands in
+`~/.local/bin`, and it does **not** install system packages unless explicitly asked.
+
+After installation, run:
 
 ```bash
-./scripts/install.sh --yes
+./local/bin/darklands
 ```
 
-The default Piper voice can be changed before installation with
-`DARKLANDS_PIPER_VOICE`, for example:
+and, when wanted:
 
 ```bash
-DARKLANDS_PIPER_VOICE=en_US-lessac-medium ./scripts/install.sh
+./local/bin/darklands-coords
+./local/bin/darktext once
 ```
 
-Review `~/.config/darklands-accessibility/darklands.env`, set the game path if
-needed, ensure `~/.local/bin` is on `PATH`, then run:
+The generated configuration is:
+
+```text
+./local/config/darklands.env
+```
+
+Edit that one file to choose the Darklands executable, component branches,
+Piper/voice locations, API settings, and whether user-level command links should
+be installed. For example, an experimental DarkText branch can be selected with:
 
 ```bash
-darklands
+DARKLANDS_DARKTEXT_BRANCH="auto-text-region"
 ```
 
-In another terminal, start coordinate or quest navigation with:
+then rerun `./scripts/install.sh` or `./scripts/update.sh`.
+
+If you explicitly want convenient PATH commands, use:
 
 ```bash
-darklands-coords
+./scripts/install.sh --install-user-commands
 ```
+
+If Debian/Ubuntu build dependencies are missing and you want the installer to
+manage them, use:
+
+```bash
+./scripts/install.sh --install-system-deps
+```
+
+or add `--yes` to make that requested apt step non-interactive.
 
 ## Documentation
 
