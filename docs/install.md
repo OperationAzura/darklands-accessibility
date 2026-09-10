@@ -5,9 +5,11 @@
 The current installation flow targets Linux with Python 3.11 or newer, Git,
 Meson, Ninja, a C++20 compiler, ALSA `aplay`, and curl.
 
-The installer is deliberately conservative by default: it does not install
-system packages and it does not write commands into `~/.local/bin` unless those
-actions are explicitly requested.
+The installer is self-contained for project files, but it also behaves like a
+complete installer: on Debian/Ubuntu it checks required system packages and, if
+anything is missing, lists the packages and asks whether to install them. It
+still does not write commands into `~/.local/bin` unless that is explicitly
+requested.
 
 ## Default layout
 
@@ -36,8 +38,8 @@ Darklands itself stays wherever the user installed it. The installer only keeps
 its path in configuration; it never copies, patches, or deletes the game.
 
 The installer prints its resolved plan before cloning or building, including the
-game path, install root, selected branches, voice directory, and whether any
-external changes were requested.
+game path, install root, selected branches, voice directory, user-command mode,
+and system-dependency behavior.
 
 ## Configuration and branches
 
@@ -97,24 +99,33 @@ If no ONNX model exists in the selected voice directory, the installer downloads
 
 ## System dependencies
 
-The default installer leaves the operating system package database alone. If a
-required build command is missing, it reports the problem.
+On Debian/Ubuntu, the default installer checks the required apt packages. If
+anything is missing, it prints the complete missing-package list and asks:
 
-On Debian/Ubuntu, explicitly opt into dependency installation with:
-
-```bash
-./scripts/install.sh --install-system-deps
+```text
+Install these missing dependencies with apt? [Y/n]
 ```
 
-Use `--yes` as well when that requested apt operation should run without a
-prompt:
+Press Enter or answer yes to install them. The installer uses `sudo` when
+needed.
+
+For unattended installation, use:
 
 ```bash
-./scripts/install.sh --install-system-deps --yes
+./scripts/install.sh --yes
 ```
 
-`--skip-system-deps` is accepted as an explicit statement of the default
-behavior.
+In a non-interactive session, missing dependencies are also installed
+automatically unless dependency handling was explicitly disabled.
+
+If system packages are being managed separately, skip that entire step with:
+
+```bash
+./scripts/install.sh --skip-system-deps
+```
+
+`--install-system-deps` is also accepted, but dependency checking and prompting
+are already the default.
 
 Use `--skip-dosbox-build` when only the Python components and launch wrappers
 should be refreshed.
