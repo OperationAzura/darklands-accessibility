@@ -6,15 +6,10 @@ The current installation flow targets Linux with Python 3.11 or newer, Meson,
 Ninja, a C++20 compiler, ALSA `aplay`, curl, and Git. Piper and at least one
 Piper `.onnx` voice are needed for speech.
 
-On Debian or Ubuntu, start with the dependencies from DOSBox Staging's current
-Linux build guide plus the Python/runtime tools:
-
-```bash
-sudo apt install ccache build-essential meson ninja-build git curl \
-  python3 python3-venv alsa-utils libasound2-dev libatomic1 libpng-dev \
-  libsdl2-dev libasio-dev libopusfile-dev libfluidsynth-dev libslirp-dev \
-  libspeexdsp-dev libxi-dev
-```
+On Debian and Ubuntu, `scripts/install.sh` detects missing system packages and
+offers to install them automatically with `apt`. The package set includes the
+standard DOSBox Staging build requirements used by this project plus the Python
+and audio runtime tools.
 
 Package names differ on other distributions. See the DOSBox fork's
 `docs/build-linux.md` for its authoritative build requirements.
@@ -27,21 +22,32 @@ cd darklands-accessibility
 ./scripts/install.sh
 ```
 
+On Debian/Ubuntu, accept the dependency-install prompt when shown. To make that
+step non-interactive, use:
+
+```bash
+./scripts/install.sh --yes
+```
+
 The installer:
 
-1. clones or updates all three component repositories beneath
+1. detects Debian/Ubuntu and installs any missing apt dependencies unless
+   `--skip-system-deps` is supplied;
+2. clones or updates all three component repositories beneath
    `~/.local/share/darklands-accessibility/src`;
-2. checks out the DOSBox fork's `darklands-accessibility` branch and records the
+3. checks out the DOSBox fork's `darklands-accessibility` branch and records the
    official project as its `upstream` remote;
-3. builds DOSBox with Meson;
-4. creates a Python virtual environment and installs DarkText and Darklands
+4. builds DOSBox with Meson;
+5. creates a Python virtual environment and installs DarkText and Darklands
    Coords in editable mode;
-5. installs symlinks for `dosbox-staging`, `darktext`, `darklands-coords`, and
+6. installs symlinks for `dosbox-staging`, `darktext`, `darklands-coords`, and
    the `darklands` launcher in `~/.local/bin`;
-6. creates a user-editable configuration file without overwriting an existing one.
+7. creates a user-editable configuration file without overwriting an existing one.
 
-Use `./scripts/install.sh --skip-dosbox-build` when you only want to install or
-refresh the Python tools and launcher.
+Use `./scripts/install.sh --skip-system-deps` when system dependencies are
+already managed separately. Use `./scripts/install.sh --skip-dosbox-build` when
+you only want to install or refresh the Python tools and launcher. The options
+can be combined.
 
 Override installation locations with `DARKLANDS_INSTALL_ROOT`,
 `DARKLANDS_BIN_DIR`, or `DARKLANDS_CONFIG_HOME`.
