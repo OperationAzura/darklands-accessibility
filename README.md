@@ -9,7 +9,7 @@ game completely separate.
 
 | Repository | Purpose | License |
 | --- | --- | --- |
-| [dosbox-staging-accessibility](https://github.com/OperationAzura/dosbox-staging-accessibility) | DOSBox Staging fork providing a loopback framebuffer, memory, keyboard, and mouse API | GPL-2.0-or-later and other retained upstream licenses |
+| [dosboxStagingAccess](https://github.com/OperationAzura/dosboxStagingAccess) | DOSBox Staging fork providing a loopback framebuffer, memory, keyboard, and mouse API | GPL-2.0-or-later and other retained upstream licenses |
 | [darktext](https://github.com/OperationAzura/darktext) | OCR and Piper speech for story text and highlighted choices | MIT |
 | [darklands-coords](https://github.com/OperationAzura/darklands-coords) | Coordinates, quest inspection, save tools, and assisted world-map navigation | MIT |
 

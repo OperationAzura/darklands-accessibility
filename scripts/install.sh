@@ -43,7 +43,7 @@ config_file="$config_home/darklands.env"
 dosbox_dir="$source_root/dosbox-staging-accessibility"
 darktext_dir="$source_root/darktext"
 coords_dir="$source_root/darklands-coords"
-dosbox_url="${DARKLANDS_DOSBOX_REPO_URL:-https://github.com/OperationAzura/dosbox-staging-accessibility.git}"
+dosbox_url="${DARKLANDS_DOSBOX_REPO_URL:-https://github.com/OperationAzura/dosboxStagingAccess.git}"
 darktext_url="${DARKLANDS_DARKTEXT_REPO_URL:-https://github.com/OperationAzura/darktext.git}"
 coords_url="${DARKLANDS_COORDS_REPO_URL:-https://github.com/OperationAzura/darklands-coords.git}"
 
