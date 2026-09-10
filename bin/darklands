@@ -1,20 +1,42 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-config_home="${DARKLANDS_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/darklands-accessibility}"
-config_file="${DARKLANDS_CONFIG_FILE:-$config_home/darklands.env}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+project_dir="$(cd "$script_dir/.." && pwd)"
+export DARKLANDS_PROJECT_DIR="${DARKLANDS_PROJECT_DIR:-$project_dir}"
+install_root="${DARKLANDS_INSTALL_ROOT:-$project_dir/local}"
+config_file="${DARKLANDS_CONFIG_FILE:-$install_root/config/darklands.env}"
 
 if [[ -f "$config_file" ]]; then
+    set -a
     # This is a user-owned shell environment file.
     # shellcheck source=/dev/null
     source "$config_file"
+    set +a
 fi
 
-dosbox="${DOSBOX_STAGING_BIN:-$(command -v dosbox-staging || true)}"
-darktext="${DARKTEXT_BIN:-$(command -v darktext || true)}"
+install_root="${DARKLANDS_INSTALL_ROOT:-$install_root}"
+local_bin="$install_root/bin"
+
+if [[ -n "${DOSBOX_STAGING_BIN:-}" ]]; then
+    dosbox="$DOSBOX_STAGING_BIN"
+elif [[ -x "$local_bin/dosbox-staging" ]]; then
+    dosbox="$local_bin/dosbox-staging"
+else
+    dosbox="$(command -v dosbox-staging || true)"
+fi
+
+if [[ -n "${DARKTEXT_BIN:-}" ]]; then
+    darktext="$DARKTEXT_BIN"
+elif [[ -x "$local_bin/darktext" ]]; then
+    darktext="$local_bin/darktext"
+else
+    darktext="$(command -v darktext || true)"
+fi
+
 game_dir="${DARKLANDS_GAME_DIR:-$HOME/dosGames/darklands}"
 game_exe="${DARKLANDS_GAME_EXE:-$game_dir/darkland.exe}"
-data_dir="${DARKTEXT_DATA_DIR:-$HOME/.local/share/darklands-accessibility/data}"
+data_dir="${DARKTEXT_DATA_DIR:-$install_root/data}"
 log_dir="${DARKLANDS_LOG_DIR:-$data_dir/logs}"
 api_bind="${DOSBOX_WEBSERVER_BIND:-127.0.0.1}"
 api_port="${DOSBOX_WEBSERVER_PORT:-8086}"
@@ -28,17 +50,19 @@ fi
 
 if [[ -z "$dosbox" || ! -x "$dosbox" ]]; then
     echo "dosbox-staging is not installed or executable." >&2
+    echo "Expected project-local binary: $local_bin/dosbox-staging" >&2
     exit 1
 fi
 
 if [[ ! -f "$game_exe" ]]; then
     echo "Darklands was not found at: $game_exe" >&2
-    echo "Edit $config_file and set DARKLANDS_GAME_DIR." >&2
+    echo "Edit $config_file and set DARKLANDS_GAME_DIR or DARKLANDS_GAME_EXE." >&2
     exit 1
 fi
 
 mkdir -p "$log_dir"
 
+export DARKLANDS_INSTALL_ROOT="$install_root"
 export DARKLANDS_GAME_DIR="$game_dir"
 export DARKLANDS_EXE="$game_exe"
 export DARKTEXT_DATA_DIR="$data_dir"
@@ -47,8 +71,6 @@ export DOSBOX_API_URL="$api_url"
 dosbox_pid=""
 darktext_pid=""
 
-# Invoked indirectly by the EXIT/INT/TERM trap below.
-# shellcheck disable=SC2329
 cleanup()
 {
     if [[ -n "$darktext_pid" ]]; then
