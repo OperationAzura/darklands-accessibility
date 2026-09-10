@@ -28,13 +28,20 @@ repositories and does not use Git submodules.
 
 ## Quick start
 
-Darklands itself is not included. Install your legally obtained game first,
-along with the system dependencies listed in the [installation guide](docs/install.md).
+Darklands itself is not included. Install your legally obtained game first.
+On Debian and Ubuntu, the installer detects and offers to install the required
+system packages automatically.
 
 ```bash
 git clone https://github.com/OperationAzura/darklands-accessibility.git
 cd darklands-accessibility
 ./scripts/install.sh
+```
+
+For unattended Debian/Ubuntu setup, use:
+
+```bash
+./scripts/install.sh --yes
 ```
 
 Review `~/.config/darklands-accessibility/darklands.env`, set the game and Piper
