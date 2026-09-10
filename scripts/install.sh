@@ -63,7 +63,6 @@ if [[ ! -f "$config_file" ]]; then
     echo "Created configuration: $config_file"
 fi
 
-# Export values loaded from the shell config so child launchers inherit them.
 set -a
 # shellcheck source=/dev/null
 source "$config_file"
@@ -219,8 +218,6 @@ fi
 "$venv/bin/python" -m pip install --upgrade pip
 "$venv/bin/python" -m pip install -e "$darktext_dir" -e "$coords_dir"
 
-# A custom Piper executable can be configured. Otherwise keep Piper inside the
-# project venv and expose it only through ./local/bin/piper.
 configured_piper="${DARKTEXT_PIPER_BIN:-$bin_dir/piper}"
 if [[ "$configured_piper" != "$bin_dir/piper" && -x "$configured_piper" ]]; then
     cat > "$bin_dir/piper" <<EOF
@@ -239,8 +236,6 @@ EOF
 fi
 chmod +x "$bin_dir/piper"
 
-# Respect an existing custom ONNX collection. Download the configured default
-# only when the selected voice directory contains no models at all.
 if ! compgen -G "$voice_dir/*.onnx" >/dev/null; then
     if ! "$venv/bin/python" -c 'import piper' >/dev/null 2>&1; then
         "$venv/bin/python" -m pip install "$piper_package"
@@ -256,6 +251,9 @@ write_tool_wrapper()
     local name="$1" target="$2"
     cat > "$bin_dir/$name" <<EOF
 #!/usr/bin/env bash
+export DARKLANDS_PROJECT_DIR="$project_dir"
+export DARKLANDS_INSTALL_ROOT="$install_root"
+export DARKLANDS_CONFIG_FILE="$config_file"
 set -a
 source "$config_file"
 set +a
