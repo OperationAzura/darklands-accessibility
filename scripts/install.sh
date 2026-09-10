@@ -2,21 +2,37 @@
 set -Eeuo pipefail
 
 build_dosbox=1
+install_system_deps=1
+assume_yes=0
 
 usage()
 {
     cat <<'EOF'
-Usage: ./scripts/install.sh [--skip-dosbox-build]
+Usage: ./scripts/install.sh [--skip-system-deps] [--skip-dosbox-build] [--yes]
 
-Clone/update the component repositories, build DOSBox Staging, install the
-Python tools in a virtual environment, and place commands in ~/.local/bin.
+Set up the Darklands accessibility toolkit. On Debian/Ubuntu systems the
+installer can install required system packages with apt, then clone/update the
+component repositories, build DOSBox Staging, install the Python tools in a
+virtual environment, and place commands in ~/.local/bin.
+
+Options:
+  --skip-system-deps   Do not offer to install Debian/Ubuntu apt dependencies
+  --skip-dosbox-build  Install/refresh Python tools and launcher without DOSBox
+  -y, --yes            Install missing system dependencies without prompting
+  -h, --help           Show this help
 EOF
 }
 
 while (($#)); do
     case "$1" in
+        --skip-system-deps)
+            install_system_deps=0
+            ;;
         --skip-dosbox-build)
             build_dosbox=0
+            ;;
+        -y|--yes)
+            assume_yes=1
             ;;
         -h|--help)
             usage
@@ -47,9 +63,100 @@ dosbox_url="${DARKLANDS_DOSBOX_REPO_URL:-https://github.com/OperationAzura/dosbo
 darktext_url="${DARKLANDS_DARKTEXT_REPO_URL:-https://github.com/OperationAzura/darktext.git}"
 coords_url="${DARKLANDS_COORDS_REPO_URL:-https://github.com/OperationAzura/darklands-coords.git}"
 
+run_as_root()
+{
+    if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    else
+        echo "Root privileges are required to install system packages." >&2
+        echo "Install sudo, run this installer as root, or use --skip-system-deps." >&2
+        return 1
+    fi
+}
+
+install_debian_dependencies()
+{
+    [[ -r /etc/os-release ]] || return 0
+
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    local distro_id="${ID:-}"
+    local distro_like=" ${ID_LIKE:-} "
+    if [[ "$distro_id" != "debian" && "$distro_id" != "ubuntu" && "$distro_like" != *" debian "* ]]; then
+        echo "System package auto-install is currently supported on Debian/Ubuntu only."
+        return 0
+    fi
+
+    local packages=(
+        ccache
+        build-essential
+        meson
+        ninja-build
+        git
+        curl
+        python3
+        python3-venv
+        python3-pip
+        alsa-utils
+        libasound2-dev
+        libatomic1
+        libpng-dev
+        libsdl2-dev
+        libasio-dev
+        libopusfile-dev
+        libfluidsynth-dev
+        libslirp-dev
+        libspeexdsp-dev
+        libxi-dev
+    )
+
+    local missing=()
+    local package
+    if command -v dpkg-query >/dev/null 2>&1; then
+        for package in "${packages[@]}"; do
+            if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q '^install ok installed$'; then
+                missing+=("$package")
+            fi
+        done
+    else
+        missing=("${packages[@]}")
+    fi
+
+    if ((${#missing[@]} == 0)); then
+        echo "System dependencies already installed."
+        return 0
+    fi
+
+    echo "Missing Debian/Ubuntu packages: ${missing[*]}"
+    if ((assume_yes == 0)); then
+        if [[ -t 0 ]]; then
+            read -r -p "Install them now with apt? [Y/n] " answer
+            case "${answer:-Y}" in
+                y|Y|yes|YES|Yes) ;;
+                *)
+                    echo "Skipping system package installation."
+                    return 0
+                    ;;
+            esac
+        else
+            echo "Non-interactive session detected; installing missing packages automatically."
+        fi
+    fi
+
+    run_as_root apt-get update
+    run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
+}
+
+if ((install_system_deps)); then
+    install_debian_dependencies
+fi
+
 for command in git python3 curl; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "Required command not found: $command" >&2
+        echo "Install the dependencies in docs/install.md or rerun without --skip-system-deps on Debian/Ubuntu." >&2
         exit 1
     fi
 done
