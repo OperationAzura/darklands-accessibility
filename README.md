@@ -30,7 +30,9 @@ repositories and does not use Git submodules.
 
 Darklands itself is not included. Install your legally obtained game first.
 On Debian and Ubuntu, the installer detects and offers to install the required
-system packages automatically.
+system packages automatically. It also installs Piper TTS into the project
+virtual environment and downloads the female U.S. English `en_US-amy-medium`
+voice automatically.
 
 ```bash
 git clone https://github.com/OperationAzura/darklands-accessibility.git
@@ -44,8 +46,15 @@ For unattended Debian/Ubuntu setup, use:
 ./scripts/install.sh --yes
 ```
 
-Review `~/.config/darklands-accessibility/darklands.env`, set the game and Piper
-paths if needed, ensure `~/.local/bin` is on `PATH`, then run:
+The default Piper voice can be changed before installation with
+`DARKLANDS_PIPER_VOICE`, for example:
+
+```bash
+DARKLANDS_PIPER_VOICE=en_US-lessac-medium ./scripts/install.sh
+```
+
+Review `~/.config/darklands-accessibility/darklands.env`, set the game path if
+needed, ensure `~/.local/bin` is on `PATH`, then run:
 
 ```bash
 darklands
