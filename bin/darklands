@@ -71,6 +71,8 @@ export DOSBOX_API_URL="$api_url"
 dosbox_pid=""
 darktext_pid=""
 
+# Invoked indirectly by the EXIT/INT/TERM trap below.
+# shellcheck disable=SC2329
 cleanup()
 {
     if [[ -n "$darktext_pid" ]]; then
