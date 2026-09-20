@@ -138,7 +138,9 @@ missing_debian_dependencies()
             dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q '^install ok installed$' || missing+=("$package")
         done
     fi
-    printf '%s\n' "${missing[@]}"
+    if ((${#missing[@]})); then
+        printf '%s\n' "${missing[@]}"
+    fi
 }
 
 if ((install_system_deps)); then

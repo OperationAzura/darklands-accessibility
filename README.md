@@ -47,6 +47,10 @@ On Debian and Ubuntu, the installer checks required system packages. If anything
 is missing it lists the packages and asks whether to install them with `apt`.
 Pressing Enter accepts the install. Use `--yes` for a non-interactive install, or
 `--skip-system-deps` if you manage system packages yourself.
+Run the script as your normal user; it invokes sudo only for system packages.
+`--yes` does not bypass sudo's password prompt. See the
+[installation guide](docs/install.md#system-dependencies) for setup without sudo
+using an existing compatible DOSBox installation.
 
 After installation, run:
 

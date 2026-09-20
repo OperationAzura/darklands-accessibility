@@ -107,7 +107,10 @@ Install these missing dependencies with apt? [Y/n]
 ```
 
 Press Enter or answer yes to install them. The installer uses `sudo` when
-needed.
+needed. Run the installer as your normal user, not with `sudo` in front of the
+whole script; only apt operations need elevated privileges. `--yes` accepts the
+installer's prompts but does not bypass sudo authentication. Enter your sudo
+password in an interactive terminal if requested.
 
 For unattended installation, use:
 
@@ -129,6 +132,26 @@ are already the default.
 
 Use `--skip-dosbox-build` when only the Python components and launch wrappers
 should be refreshed.
+
+To install without sudo when a compatible DOSBox accessibility fork and the
+required runtime tools are already installed:
+
+```bash
+./scripts/install.sh --skip-system-deps --skip-dosbox-build
+```
+
+The launcher uses the project-local DOSBox if present, otherwise
+`dosbox-staging` on PATH. Set `DOSBOX_STAGING_BIN` to use a different executable.
+An ordinary DOSBox build without the accessibility API is not sufficient.
+
+If installation fails, fix the reported error and rerun the same command. The
+installer reuses its component checkouts, build directory, environment, and
+voices. Meson configuration failures include the location of `meson-log.txt`.
+
+The full Meson release build and generated launcher have been verified on
+Ubuntu 22.04 with Python 3.12 and GCC 11.4. The fork supports Ubuntu's Asio
+header package without pkg-config metadata and older FluidSynth libraries;
+the optional XG/GS portamento-time override requires FluidSynth 2.5 or newer.
 
 ## Commands
 
